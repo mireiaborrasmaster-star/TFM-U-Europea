@@ -1,0 +1,37 @@
+# Dependencias del sistema multi-agente
+# Generado el 06-10-2026 · versiones con las que se obtuvieron las cifras
+#
+# INSTALACION
+#     python -m venv .venv
+#     .venv\Scripts\activate          (Windows)
+#     pip install -r requirements.txt
+#
+# OJO CON TORCH: la linea de abajo instala la version de CPU. Si se quiere
+# usar la tarjeta grafica hay que instalarlo APARTE, con el indice que
+# corresponda a la version de CUDA del equipo:
+#
+#     pip install torch --index-url https://download.pytorch.org/whl/cu124
+#
+# y hacerlo ANTES que el resto, porque si no pip resuelve la de CPU.
+# Comprobacion:  python -c "import torch; print(torch.cuda.is_available())"
+
+# --- lo que necesita TODO el sistema --------------------------------------
+pandas>=2.2,<3
+numpy>=1.26,<3
+scikit-learn>=1.5,<2
+openpyxl>=3.1,<4          # para leer los export .xlsx del CRM
+scipy>=1.13,<2            # asignacion optima en el casado de etiquetas
+
+# --- solo para A2 (clasificador sectorial) y A5 (redaccion) ---------------
+# Estos dos son los unicos que necesitan tarjeta grafica.
+torch>=2.2
+transformers>=4.44
+sentence-transformers>=3.0
+
+# --- solo para preparar los datos desde cero ------------------------------
+# No hacen falta si se usan los datos ya preparados que vienen en datos/
+requests>=2.32,<3
+beautifulsoup4>=4.12,<5
+
+# --- solo para regenerar las figuras de la memoria ------------------------
+matplotlib>=3.8,<4

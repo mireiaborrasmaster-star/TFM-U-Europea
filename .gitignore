@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Sistema
+.DS_Store
+
+# Datos y resultados (no se publican por confidencialidad)
+datos/
+output/
+*.db
+*.zip

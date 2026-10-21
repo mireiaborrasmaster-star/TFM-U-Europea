@@ -1,0 +1,206 @@
+===============================================================================
+ SISTEMA MULTI-AGENTE PARA EL DESARROLLO DE VENTAS B2B
+ Como funciona y que hace cada script
+===============================================================================
+
+ LA CARPETA
+
+   lanzar.py                el punto de entrada
+   LEEME.txt                esto
+   requirements.txt         las librerias, con las versiones usadas
+   datos/                   los datos, seudonimizados
+   input/                   lo que decide una persona: campanas y catalogo
+   scripts/                 los catorce scripts sin los que no funciona
+   scripts_experimentos/    las pruebas que sostienen las cifras de la memoria
+   output/                  los resultados ya calculados
+
+ PARA VERLO FUNCIONAR
+
+   python lanzar.py                  dice que se puede lanzar
+   python lanzar.py recepcion        el circuito de solicitudes entrantes
+   python lanzar.py salida           el circuito de prospeccion
+
+   Sin --guardar no escribe nada: solo imprime lo que haria. Los resultados
+   ya calculados estan en output/, asi que se puede revisar el trabajo sin
+   ejecutar nada.
+
+
+===============================================================================
+ LOS DOS CIRCUITOS
+===============================================================================
+
+ El proceso comercial tiene dos puertas de entrada y los dos circuitos las
+ recorren. Un circuito no es una carpeta de scripts sueltos: cada agente
+ recibe la SALIDA REAL del anterior, con sus errores dentro.
+
+ CIRCUITO DE SALIDA · nosotros buscamos al cliente
+   A0_orquestador.py
+   Encadena: A2 clasifica el sector -> A3 puntua la cuenta -> A5 empareja un
+   servicio y deja en cola lo que habria que redactar. Se ejecuta sobre las
+   2.652 empresas del conjunto de prueba.
+
+ CIRCUITO DE RECEPCION · el cliente nos busca
+   A0_circuito_recepcion.py
+   Encadena: A6 resuelve quien escribe, si es una solicitud y a que area va
+   -> A7 compone la ficha de traspaso -> A8 estima la probabilidad de cierre.
+   Escribe cuatro hojas que replican el formato del sistema de gestion, en
+   output/simulacion_crm/.
+
+ Por que importa encadenarlos: medido por separado, cada agente da una cifra;
+ encadenados aparecen dos cosas que no se ven de otro modo —cuanto importa
+ de verdad que un agente se equivoque, y cuanto cae un modelo cuando recibe
+ datos distintos de aquellos con los que se entreno—.
+
+
+===============================================================================
+ LOS SCRIPTS, POR AGENTE
+===============================================================================
+
+ A2 · CLASIFICAR EL SECTOR DE UNA EMPRESA
+   F2_A2_E8_E10_transformer.py
+     Clasifica cada empresa en una de las 41 categorias de la organizacion,
+     leyendo su nombre y el texto de su web. Es el unico agente con ajuste
+     fino de un modelo neuronal; necesita tarjeta grafica para entrenar.
+
+ A3 · PUNTUAR Y PRIORIZAR LA CUENTA
+   F3_A3_E14_fase1_encaje.py
+     Primera fase: nota A-E segun lo que se sabe de la empresa, sin mirar lo
+     que pide.
+   F3_A3_E12_E16_conversion.py
+     Segunda fase: ajusta la prioridad segun el tipo de servicio solicitado,
+     que resulta predecir mejor que la propia cuenta.
+
+ A5 · CONTACTAR
+   F5_A5_E17_emparejar_lexico.py
+     Empareja solicitud y servicio por coincidencia de terminos del catalogo.
+     Se conserva porque es la referencia contra la que se mide el metodo
+     semantico, y porque el siguiente lo importa.
+   F5_A5_E18_emparejar_semantico.py
+     Empareja por significado, con representaciones densas. Es el que decide
+     que servicio se propone, y se abstiene cuando no esta seguro.
+   F5_A5_E19_generar_correos.py
+     Redaccion del correo cuando el servicio lo elige el sistema. Es la
+     version anterior; se conserva porque el modo campana la importa.
+   F5_A5_E20_campana.py
+     Redaccion en modo campana, que es el diseno vigente: el mensaje lo fija
+     una persona en el brief y el agente solo lo conecta con cada empresa, o
+     se abstiene si no le aplica. Lee el brief de input/. Necesita grafica.
+
+ A6 · ATENDER LO QUE ENTRA Y CUALIFICAR
+   F6_A6_agente_recepcion.py
+     Cuatro piezas sobre el mismo correo: quien escribe (por el dominio),
+     que norma cita, a que area tecnica corresponde y si es una solicitud
+     comercial o no. Cuando no puede decidir, deriva a una persona con el
+     motivo escrito.
+
+ A7 · TRASPASAR AL TECNICO COMERCIAL
+   F8_A8_tema_modelo.py
+     Decide el tipo de servicio que se pide. Sustituye a un diccionario
+     escrito a mano.
+   F8_A8_briefing_traspaso.py
+     Compone la ficha con la que se traspasa el caso: lo que dice el correo,
+     lo que consta de la cuenta y el asunto propuesto. No redacta: compone
+     lo que consta, para que no invente nada.
+
+ A8 · SEGUIR LA OPORTUNIDAD
+   F9_A9_seguimiento_oportunidades.py
+     Estima la probabilidad de que la oportunidad acabe en trabajo, con lo
+     que se sabe en el momento de registrarla.
+
+ APOYO
+   PREP_anonimizar.py
+     Seudonimiza los export del sistema de gestion. Se incluye porque los
+     agentes importan de el las funciones de limpieza, y porque documenta
+     como se trataron los datos.
+
+ OJO CON LOS NOMBRES DE FICHERO. Algunos llevan el numero de agente antiguo:
+ F8_A8_... es lo que la memoria llama A7, y F9_A9_... lo que llama A8. Se
+ renumeraron los agentes y no los ficheros, para no romper lo ya ejecutado.
+ La correspondencia es esta:
+
+   memoria     fichero
+   A6          F6_A6_...
+   A7          F8_A8_...
+   A8          F9_A9_...
+
+
+===============================================================================
+ LOS DATOS
+===============================================================================
+
+ datos/01_limpio/     los export del sistema de gestion, ya seudonimizados
+ datos/02_derivado/   el conjunto de prueba, listo para los modelos
+
+ TODO LO QUE IDENTIFICA A UNA EMPRESA ESTA SUSTITUIDO por un codigo estable:
+ el nombre, el numero de cuenta, el dominio del remitente y el sitio web. El
+ mismo nombre da siempre el mismo codigo, asi que las tablas se pueden cruzar
+ igual que antes y los modelos no pierden nada.
+
+ LO QUE NO SE ENTREGA, Y POR QUE
+   · El export original del sistema de gestion, con los nombres reales.
+   · La tabla que traduce codigo -> nombre. Sin ella los seudonimos no se
+     pueden deshacer, que es justamente el objetivo.
+   · El texto de las paginas web (35 MB) y los conjuntos de entrenamiento
+     completos (112 MB), porque llevan nombres de empresa dentro del texto
+     libre y porque no hacen falta para ver el sistema funcionando.
+
+ QUE SE PUEDE EJECUTAR DE VERDAD, Y QUE NO
+
+   python lanzar.py recepcion      SI, y es lo que conviene ensenar
+      Lee los 105 correos, resuelve quien escribe cruzando el dominio con
+      las 15.891 cuentas que lo tienen, y decide si cada correo es una
+      solicitud de trabajo. Reproduce el AUC de 0,946 que publica la
+      memoria. Al llegar al tipo de servicio se detiene y dice por que:
+      entrenarlo necesita el «Tema» de las oportunidades, que es texto
+      escrito por una persona y puede nombrar a la empresa, asi que la
+      anonimizacion lo aparta.
+
+   python lanzar.py salida         NO, y tambien lo dice
+      Necesita los conjuntos de entrenamiento, 112 MB con el texto de las
+      webs dentro, donde aparecen nombres en texto libre.
+
+ UN NUMERO QUE NO CUADRA, Y ESTA BIEN QUE NO CUADRE
+
+   Al ejecutar el circuito de recepcion aqui, la capacidad de ordenacion de
+   la pieza que distingue una solicitud sale 0,940. La memoria publica
+   0,946. No es un error de ninguno de los dos:
+
+   El modelo lee el TEXTO de los correos, y en esta copia el texto no es el
+   mismo. Se ha sustituido el nombre de la organizacion, y tres nombres de
+   empresa que aparecian dentro del cuerpo de los mensajes. Cambiar palabras
+   que el modelo cuenta cambia, poco, lo que el modelo puntua.
+
+   Seis milesimas de AUC sobre 105 correos son dos o tres pares de casos.
+   La cifra publicada se midio sobre el texto original; esta, sobre el texto
+   anonimizado. Las dos son ciertas, de dos textos distintos.
+
+ NINGUNO DE LOS DOS FALLA CON UN ERROR SECO: los dos paran con un mensaje
+ que explica que falta, por que no se entrega y en que fichero de output/
+ esta el resultado que produjeron cuando se ejecutaron con los datos
+ completos.
+
+
+===============================================================================
+ input/
+===============================================================================
+
+ Lo que decide una persona y el sistema solo ejecuta:
+
+   12_CAMPANAS.md            el brief de campana que lee A5
+   10_CATALOGO_SERVICIOS.md  los servicios contra los que empareja
+
+ El brief de campana puede ser tambien un Word: si se deja aqui un fichero
+ llamado 12_CAMPANAS.docx, el agente lo usa en lugar del .md. El formato es
+ una tabla por campana, con la primera fila «Campana | C01 · nombre».
+
+
+===============================================================================
+ output/
+===============================================================================
+
+ Los resultados ya calculados: las tablas y las cifras que aparecen en la
+ memoria, y las cuatro hojas que el circuito de recepcion escribiria en el
+ sistema de gestion.
+
+ Cada fichero .json lleva el resultado de un experimento; los .csv, las
+ predicciones caso a caso.
